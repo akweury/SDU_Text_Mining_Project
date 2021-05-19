@@ -61,6 +61,16 @@ def frequencyAnalysis(normalizedWords):
     return freq_list
 
 
+def normalize_a_news(news):
+    sentence = sentenceSegmenter(news)
+    words = wordDivider(sentence)
+    word_normalised = wordNormalization(words)
+    remove_stop_word = remove_stop_words(word_normalised)
+    frequency_list = frequencyAnalysis(remove_stop_word)
+
+    return frequency_list
+
+
 def training_test_split(all_data, percent_of_training_data):
     num_of_training_data = round(len(all_data) * percent_of_training_data)
     train = all_data[:num_of_training_data]
@@ -110,20 +120,24 @@ def cond_prob(item, cond_prior_prob, alpha):
         return alpha / (sum(cond_prior_prob.values()) + alpha * len(cond_prior_prob))
 
 
-def prediction(test_X, p_pos, p_neg, pos_prior, neg_prior, alpha):
+def prediction(test_X, covid_19_classifier):
     pred = []
     res = []
     for test_news in test_X:
-        score_pos = math.log(p_pos)
+        score_pos = math.log(covid_19_classifier['p_covid'])
         for title_word in test_news['title']:
-            score_pos += math.log(cond_prob(title_word, pos_prior, alpha))
+            score_pos += math.log(
+                cond_prob(title_word, covid_19_classifier['word_pos_prior'], covid_19_classifier['alpha']))
         for title_word in test_news['description']:
-            score_pos += math.log(cond_prob(title_word, pos_prior, alpha))
-        score_neg = math.log(p_neg)
+            score_pos += math.log(
+                cond_prob(title_word, covid_19_classifier['word_pos_prior'], covid_19_classifier['alpha']))
+        score_neg = math.log(covid_19_classifier['p_not_covid'])
         for title_word in test_news['title']:
-            score_neg += math.log(cond_prob(title_word, neg_prior, alpha))
+            score_neg += math.log(
+                cond_prob(title_word, covid_19_classifier['word_neg_prior'], covid_19_classifier['alpha']))
         for title_word in test_news['description']:
-            score_neg += math.log(cond_prob(title_word, neg_prior, alpha))
+            score_neg += math.log(
+                cond_prob(title_word, covid_19_classifier['word_neg_prior'], covid_19_classifier['alpha']))
         score = True if score_pos > score_neg else False
         pred.append(score)
         res.append(test_news['is_covid'] == score)
