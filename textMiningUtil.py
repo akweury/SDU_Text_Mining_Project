@@ -2,6 +2,10 @@ import re
 import math
 import nltk
 from nltk.corpus import stopwords
+import spacy
+from spacy import displacy
+
+from pprint import pprint
 
 
 def sentenceSegmenter(data):
@@ -13,7 +17,7 @@ def sentenceSegmenter(data):
     # find the character segment like
     # (dot*1)(whitespace*n)(Uppercase letter*1)
     sentences = re.split('(?<!Mr)(?<!Mrs)[?|.|!]\s*(?=[A-Z"])*', data)
-
+    sentences = [sentence for sentence in sentences if len(sentence) > 1]
     return sentences
 
 
@@ -170,3 +174,25 @@ def precision_recall(pred, ground_truth):
             else:
                 TN += 1
     return TP, FN, FP, TN
+
+
+def analysis_article(articles):
+    entities = []
+    news_counter = 0
+    nlp = spacy.load("en_core_web_sm")
+    for article in articles:
+        news_counter += 1
+        one_sentence_article = [''.join(sentence) for sentence in article]
+        if len(one_sentence_article) > 0:
+            doc = nlp(one_sentence_article[0])
+            entities += [(X.text, X.label_) for X in doc.ents]
+            # tokens = [(X, X.ent_iob_, X.ent_type_) for X in doc]
+            # labels = [x.label_ for x in doc.ents]
+            # Counter(labels)
+            # items = [x.text for x in doc.ents]
+            # Counter(items)
+
+        if news_counter % 1000 == 0:
+            print(f"{news_counter} news has been analyzed")
+
+    return entities

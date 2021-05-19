@@ -2,7 +2,12 @@ import glob
 import gzip
 import json
 import pickle
+from collections import Counter
+import os
 from os import path
+from os import listdir
+from os.path import join
+
 import textMiningUtil
 
 """
@@ -40,6 +45,11 @@ def save_data_to_file(data, file_name):
         pickle.dump(data, fp, protocol=pickle.HIGHEST_PROTOCOL)
 
 
+def save_data_to_txt_file(data, file_name):
+    with open(file_name, 'wt') as fp:
+        pickle.dump(data, fp, protocol=pickle.HIGHEST_PROTOCOL)
+
+
 """
 given a file_name, load it to a variable
 """
@@ -48,6 +58,12 @@ given a file_name, load it to a variable
 def load_file_to_data(file_name):
     with open(file_name, 'rb') as fp:
         data = pickle.load(fp)
+    return data
+
+
+def load_txt(file):
+    with open(file, 'rt') as fp:
+        data = fp.readlines()
     return data
 
 
@@ -67,6 +83,7 @@ load all the files with specified suffix
 
 def load_dataset(dataset, suffix):
     data = get_all_files_in_folder(dataset, suffix)
+
     data = unzip_gz_files(data)
     all_news = []
     for all_day_news in data:
@@ -103,6 +120,23 @@ def read_data(data_path):
     return X, y
 
 
+def classifier_evaluation(classifier, test_dataset, test_label):
+    # make the predictions to evaluate the classifier
+    pred, res = textMiningUtil.prediction(test_dataset, classifier)
+    accurate_rate = round(res.count(True) / len(res), 2)
+    print(f"accurate rate: {accurate_rate}")
+
+    # calculate TP, FP
+    # TP: is covid, predict covid
+    # FN: is covid, predict not covid
+    # FP: not covid, predict covid
+    # TN: not covid, predict not covid
+    TP, FN, FP, TN = textMiningUtil.precision_recall(pred, test_label)
+    accuracy = (TN + TP) / (TN + TP + FN + FP)
+    print(f"accuracy: {accuracy} ")
+    return accuracy
+
+
 def make_classifier(classifier_file, X, y):
     if has_file(classifier_file):
         print("covid 19 classifier exists, loading...")
@@ -113,7 +147,7 @@ def make_classifier(classifier_file, X, y):
         return covid_19_classifier
     else:
         # train classifier
-        print("covid 19 classifier not exists, start training...")
+        print("Covid 19 classifier not exists, start training...")
         # partition the data to the train set and test set
         train_X, test_X = textMiningUtil.training_test_split(X, 0.9)
         train_y, test_y = textMiningUtil.training_test_split(y, 0.9)
@@ -155,19 +189,51 @@ def make_classifier(classifier_file, X, y):
                                'DataResource': 'bbc.com'}
 
         # make the predictions to evaluate the classifier
-        pred, res = textMiningUtil.prediction(test_X, covid_19_classifier)
-        accurate_rate = round(res.count(True) / len(res), 2)
-        print(f"accurate rate: {accurate_rate}")
-
-        # calculate TP, FP
-        # TP: is covid, predict covid
-        # FN: is covid, predict not covid
-        # FP: not covid, predict covid
-        # TN: not covid, predict not covid
-        TP, FN, FP, TN = textMiningUtil.precision_recall(pred, test_y)
-        accuracy = (TN + TP) / (TN + TP + FN + FP)
+        accuracy = classifier_evaluation(covid_19_classifier, test_X, test_y)
         covid_19_classifier['accuracy'] = accuracy
 
         # save the classifier
         save_data_to_file(covid_19_classifier, classifier_file)
         return covid_19_classifier
+
+
+def get_all_folder_names(folder_path):
+    """
+
+    :param folder_path: get all the folder names under the 'folder_path'
+    :return: an array including all the folder names under this folder
+    """
+
+    onlyfolders = [f for f in listdir(folder_path) if os.path.isdir(join(folder_path, f))]
+    return onlyfolders
+
+
+def get_all_the_articles(data_path):
+    news_list = load_dataset(data_path, "*.gz")
+    articles = []
+    for news in news_list:
+        # title = textMiningUtil.sentenceSegmenter(news['title'])
+        description = textMiningUtil.sentenceSegmenter(news['description'])
+        articles.append(description)
+    return articles
+
+
+def ner(data_path):
+    articles = get_all_the_articles(data_path)
+    print(f"{len(articles)} articles are going to be analyzed.")
+
+    entities = textMiningUtil.analysis_article(articles)
+
+    Counter(entities).most_common(3)
+
+    return entities
+
+
+def save_entities(entities, file_name):
+    with open(file_name, 'wt') as f:
+        for k, v in entities.most_common():
+            f.write("{} {}\n".format(k, v))
+
+
+def get_most_common_elements(my_list, n):
+    return Counter(my_list).most_common(n)
