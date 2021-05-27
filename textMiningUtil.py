@@ -3,9 +3,6 @@ import math
 import nltk
 from nltk.corpus import stopwords
 import spacy
-from spacy import displacy
-
-from pprint import pprint
 
 
 def sentenceSegmenter(data):
@@ -13,10 +10,9 @@ def sentenceSegmenter(data):
     if not isinstance(data, str):
         print("Error: input data is not string!")
         return sentences
-
     # find the character segment like
     # (dot*1)(whitespace*n)(Uppercase letter*1)
-    sentences = re.split('(?<!Mr)(?<!Mrs)[?|.|!]\s*(?=[A-Z"])*', data)
+    sentences = re.split('(?<!Mr)(?<!Mrs)[?|.|\-|!]\s+(?=[A-Z"])+', data)
     sentences = [sentence for sentence in sentences if len(sentence) > 1]
     return sentences
 
@@ -29,7 +25,8 @@ divide all the sentence to words
 def wordDivider(sentences):
     words = []
 
-    sentences = [re.split('(?<!Mr.)(?<!Mrs.)[\s|\-|,|:|;|#|"]', sentence) for sentence in sentences]
+    sentences = [re.split('(?<!Mr.)(?<!Mrs.)[\s|\-|,|:|;|#|"]', sentence)
+                 for sentence in sentences]
 
     # remove 0-length strings
     for sentence in sentences:

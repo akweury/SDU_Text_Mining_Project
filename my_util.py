@@ -173,7 +173,7 @@ def make_classifier(classifier_file, X, y):
         vocab_neg_reduced = textMiningUtil.reduce_less_common_key_dict(vocab_neg, 3)
         vocab_pos_reduced = textMiningUtil.reduce_less_common_key_dict(vocab_pos, 3)
 
-        # get prior, which is p(word | class) for each word
+        # get likelihood, which is p(word | class) for each word
         alpha = 1
         word_pos_prior, word_neg_prior = textMiningUtil.prior_preb(vocab, vocab_pos, vocab_neg, alpha)
         word_pos_prior_reduced, word_neg_prior_reduced = textMiningUtil.prior_preb(vocab_reduced, vocab_pos_reduced,
@@ -218,13 +218,24 @@ def get_all_the_articles(data_path):
     return articles
 
 
+def get_all_the_articles_with_label(data_path, label):
+    news_list = load_dataset(data_path, "*.gz")
+    articles = []
+    for news in news_list:
+        # title = textMiningUtil.sentenceSegmenter(news['title'])
+        if news[label]:
+            description = textMiningUtil.sentenceSegmenter(news['description'])
+            articles.append(description)
+    return articles
+
+
 def ner(data_path):
-    articles = get_all_the_articles(data_path)
+    articles = get_all_the_articles_with_label(data_path, 'is_covid')
     print(f"{len(articles)} articles are going to be analyzed.")
 
     entities = textMiningUtil.analysis_article(articles)
 
-    Counter(entities).most_common(3)
+    Counter(entities).most_common(10)
 
     return entities
 
